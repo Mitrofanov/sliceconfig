@@ -1,6 +1,6 @@
 *filter
-:INPUT ACCEPT [0:0]
-:FORWARD ACCEPT [0:0]
+:INPUT DROP [0:0]
+:FORWARD DROP [0:0]
 :OUTPUT ACCEPT [0:0]
 
 -A INPUT -i lo -j ACCEPT
@@ -22,9 +22,6 @@
 
 -A INPUT -p icmp -m icmp --icmp-type 8 -j ACCEPT
 
--A INPUT -j REJECT
-
--A FORWARD -j REJECT
 -A OUTPUT -j ACCEPT
 
 COMMIT
