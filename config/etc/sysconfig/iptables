@@ -8,13 +8,49 @@
 
 -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
 
+ -A INPUT   -m conntrack --ctstate INVALID -j DROP
+ -A FORWARD -m conntrack --ctstate INVALID -j DROP
+
+# Now we block a port scanner
+
+         -N remove_block
+         -A remove_block -m recent --remove -j RETURN
+
+        -A INPUT -m recent --rcheck --hitcount 10 --seconds 5 -j LOG --log-level DEBUG --log-prefix "Scaner 24h block: "
+        -A INPUT -m recent --rcheck --seconds 86400 --hitcount 10 -j DROP
+        -A INPUT -m recent --rcheck --hitcount 10 -j remove_block
+        -A INPUT -m recent --rcheck --hitcount 2 --seconds 5 -j LOG --log-level DEBUG --log-prefix "Scaner 1m block: "
+        -A INPUT -m recent --rcheck --seconds 60 --hitcount 2 -j DROP
+####
+
+# New not syn tcp packets block
+ -A INPUT -p tcp ! --syn -m conntrack --ctstate NEW -j LOG --log-level DEBUG --log-prefix "New not syn:"
+ -A FORWARD -p tcp ! --syn -m conntrack --ctstate NEW -j LOG --log-level DEBUG --log-prefix "Forward not syn:"
+ -A INPUT -p tcp ! --syn -m conntrack --ctstate NEW -j DROP
+ -A FORWARD -p tcp ! --syn -m conntrack --ctstate NEW -j DROP
+
+# syn-flood block
+ -N syn-flood
+       
+        $IPT -A syn-flood -m limit --limit 100/second --limit-burst 150 -j RETURN
+        $IPT -A syn-flood -j LOG --log-level DEBUG --log-prefix "SYN flood: "
+        $IPT -A syn-flood -j DROP
+
+$IPT -A INPUT -p tcp --syn -j syn-flood
+
+# ICMP-flood block
+$IPT -N icmp-flood
+        $IPT -A icmp-flood -m limit --limit 1/s --limit-burst 100 -j RETURN
+        $IPT -A icmp-flood -j LOG --log-level DEBUG --log-prefix "ICMP flood: "
+        $IPT -A icmp-flood -j DROP
+
+$IPT -A INPUT -p icmp -j icmp-flood
+
 # Public ports
 -A INPUT -p tcp --dport 21 -j ACCEPT
 -A INPUT -p tcp --dport 80 -j ACCEPT
 -A INPUT -p tcp --dport 443 -j ACCEPT
-#-A INPUT -p tcp -m iprange --src-range  172.16.0.0-172.23.255.254  --dport 3306 -j ACCEPT
-#-A INPUT -p tcp -m iprange --src-range  172.16.0.0-172.23.255.254  --dport 2049 -j ACCEPT
-#-A INPUT -p tcp -m iprange --src-range  172.16.0.0-172.23.255.254  --dport 11211 -j ACCEPT
+
 -A INPUT -p tcp -m state --state NEW --dport CONFIG_SSH_PORT -j ACCEPT
 
 # munin-node
