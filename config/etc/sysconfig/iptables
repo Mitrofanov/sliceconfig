@@ -51,6 +51,9 @@ $IPT -A INPUT -p icmp -j icmp-flood
 -A INPUT -p tcp --dport 80 -j ACCEPT
 -A INPUT -p tcp --dport 443 -j ACCEPT
 
+##Secure ssh connection
+ -A INPUT -p tcp -m conntrack --ctstate NEW --dport CONFIG_SSH_PORT -m recent --update --seconds 20 -j DROP
+        $IPT -A INPUT -p tcp -m conntrack --ctstate NEW --dport CONFIG_SSH_PORT -j LOG --log-level DEBUG --log-prefix "SSH connect: "
 -A INPUT -p tcp -m state --state NEW --dport CONFIG_SSH_PORT -j ACCEPT
 
 # munin-node
